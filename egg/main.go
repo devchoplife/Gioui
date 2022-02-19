@@ -14,7 +14,7 @@ import (
 func main() {
 	go func() {
 		//Create new window
-		w := app.NewWindow(
+		win := app.NewWindow(
 			app.Title("Egg Timer"),
 			app.Size(unit.Dp(400), unit.Dp(600)),
 		)
@@ -29,10 +29,10 @@ func main() {
 		th := material.NewTheme(gofont.Collection())
 
 		//Listen for events in the window
-		for e := range w.Events() {
-			// detect what type of event
+		for e := range win.Events() {
+			// detect what type of event it is
 			switch e := e.(type) {
-			// this is sent when the application shoudl re-render
+			// this is sent when the application should re-render
 			case system.FrameEvent:
 				gtx := layout.NewContext(&ops, e)
 				btn := material.Button(th, &startButton, "Start")
