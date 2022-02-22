@@ -1,11 +1,14 @@
 package main
 
 import (
+	"fmt"
 	"image"
 	"image/color"
 	"log"
 	"math"
 	"os"
+	"strconv"
+	"strings"
 	"time"
 
 	"gioui.org/app"
@@ -16,6 +19,7 @@ import (
 	"gioui.org/op"
 	"gioui.org/op/clip"
 	"gioui.org/op/paint"
+	"gioui.org/text"
 	"gioui.org/unit"
 	"gioui.org/widget"
 	"gioui.org/widget/material"
@@ -25,6 +29,8 @@ type C = layout.Context
 type D = layout.Dimensions
 
 var incrementProgress chan float32
+var boilDurationEditor widget.Editor
+var boilDuration float32
 
 // the draw function handles the layout
 func draw(w *app.Window) error {
@@ -52,6 +58,12 @@ func draw(w *app.Window) error {
 				// Using the flex layout
 				if startButton.Clicked() {
 					boiling = !boiling
+					// Read from the input box
+					inputString := boilDurationEditor.Text()
+					inputString = strings.TrimSpace(inputString)
+					inputFloat, _ := strconv.ParseFloat(inputString, 32)
+					boilDuration = float32(inputFloat)
+					boilDuration = boilDuration / (1 - progress)
 				}
 				layout.Flex{
 					// Vertical alignment, top to bottom
@@ -106,6 +118,39 @@ func draw(w *app.Window) error {
 					),
 					layout.Rigid(
 						func(gtx C) D {
+							// Wrap the ediror in material design
+							ed := material.Editor(th, &boilDurationEditor, "sec")
+							boilDurationEditor.SingleLine = true
+							boilDurationEditor.Alignment = text.Middle
+							if boiling && progress < 1 {
+								boilRemain := (1 - progress) * boilDuration
+								// format to 1 decimal
+								inputStr := fmt.Sprintf("%.1f", math.Round(float64(boilRemain)*10/10))
+								// Update the text in the editor
+								boilDurationEditor.SetText(inputStr)
+							}
+
+							margins := layout.Inset{
+								Top:    unit.Dp(0),
+								Right:  unit.Dp(170),
+								Bottom: unit.Dp(40),
+								Left:   unit.Dp(170),
+							}
+
+							border := widget.Border{
+								Color:        color.NRGBA{R: 204, G: 204, B: 204, A: 255},
+								CornerRadius: unit.Dp(3),
+								Width:        unit.Dp(2),
+							}
+
+							return margins.Layout(gtx,
+								func(gtx C) D {
+									return border.Layout(gtx, ed.Layout)
+								})
+						},
+					),
+					layout.Rigid(
+						func(gtx C) D {
 							bar := material.ProgressBar(th, (progress)) // Progress is used here
 							return bar.Layout(gtx)
 						},
@@ -123,8 +168,14 @@ func draw(w *app.Window) error {
 							var text string
 							if !boiling {
 								text = "Start"
-							} else {
+							}
+
+							if boiling && progress < 1 {
 								text = "Stop"
+							}
+
+							if boiling && progress >= 1 {
+								text = "Finished Boiling"
 							}
 
 							btn := material.Button(th, &startButton, text)
