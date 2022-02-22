@@ -2,7 +2,10 @@ module github.com/devchoplife/start-gio
 
 go 1.17
 
-require gioui.org v0.0.0-20211226092054-3a20330d8213
+require (
+	gioui.org v0.0.0-20211226092054-3a20330d8213
+	github.com/cybriq/gio v0.0.6
+)
 
 require (
 	gioui.org/cpu v0.0.0-20210817075930-8d6a761490d2 // indirect
