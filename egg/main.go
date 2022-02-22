@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"os"
+	"time"
 
 	"gioui.org/app"
 	"gioui.org/font/gofont"
@@ -14,13 +15,16 @@ import (
 	"gioui.org/widget/material"
 )
 
-var progress float32
-
 type C = layout.Context
 type D = layout.Dimensions
 
+var incrementProgress chan float32
+var progress float32
+
 // the draw function handles the layout
 func draw(w *app.Window) error {
+	var boiling bool
+
 	// ops are the operations from the UI
 	var ops op.Ops
 
@@ -31,63 +35,90 @@ func draw(w *app.Window) error {
 	th := material.NewTheme(gofont.Collection())
 
 	//Listen for events in the window
-	for e := range w.Events() {
-		// detect what type of event it is
-		switch e := e.(type) {
-		// this is sent when the application should re-render
-		case system.FrameEvent:
-			gtx := layout.NewContext(&ops, e)
-			// Using the flex layout
-			layout.Flex{
-				// Vertical alignment, top to bottom
-				Axis: layout.Vertical,
-				// Empty space is left at the start i.e. at the top
-				Spacing: layout.SpaceStart,
-			}.Layout(gtx,
-				// We insert rigid elements
-				// Insert the progress bar
-				layout.Rigid(
-					func(gtx C) D {
-						bar := material.ProgressBar(th, (progress)) // Progress is used here
-						return bar.Layout(gtx)
-					},
-				),
-				// First, a button
-				layout.Rigid(
-					func(gtx C) D {
-						margins := layout.Inset{
-							Top:    unit.Dp(25),
-							Bottom: unit.Dp(25),
-							Right:  unit.Dp(35),
-							Left:   unit.Dp(35),
-						}
+	for {
+		select {
+		case e := <-w.Events():
+			// detect what type of event it is
+			switch e := e.(type) {
+			// this is sent when the application should re-render
+			case system.FrameEvent:
+				gtx := layout.NewContext(&ops, e)
+				// Using the flex layout
+				if startButton.Clicked() {
+					boiling = !boiling
+				}
+				layout.Flex{
+					// Vertical alignment, top to bottom
+					Axis: layout.Vertical,
+					// Empty space is left at the start i.e. at the top
+					Spacing: layout.SpaceStart,
+				}.Layout(gtx,
+					// We insert rigid elements
+					// Insert the progress bar
+					layout.Rigid(
+						func(gtx C) D {
+							bar := material.ProgressBar(th, (progress)) // Progress is used here
+							return bar.Layout(gtx)
+						},
+					),
+					// First, a button
+					layout.Rigid(
+						func(gtx C) D {
+							margins := layout.Inset{
+								Top:    unit.Dp(25),
+								Bottom: unit.Dp(25),
+								Right:  unit.Dp(35),
+								Left:   unit.Dp(35),
+							}
 
-						btn := material.Button(th, &startButton, "Start")
-						return margins.Layout(gtx,
-							func(gtx C) D {
-								return btn.Layout(gtx)
-							},
-						)
-					},
-				),
+							var text string
+							if !boiling {
+								text = "Start"
+							} else {
+								text = "Stop"
+							}
 
-				// then an empty spacer
-				layout.Rigid(
-					// The height of the spacer is 25 Device independent pixels
-					layout.Spacer{Height: unit.Dp(25)}.Layout,
-				),
-			)
-			e.Frame(gtx.Ops)
+							btn := material.Button(th, &startButton, text)
+							return margins.Layout(gtx,
+								func(gtx C) D {
+									return btn.Layout(gtx)
+								},
+							)
+						},
+					),
 
-			// THis is sent when the application is closed
-		case system.DestroyEvent:
-			return e.Err
+					// then an empty spacer
+					layout.Rigid(
+						// The height of the spacer is 25 Device independent pixels
+						layout.Spacer{Height: unit.Dp(25)}.Layout,
+					),
+				)
+				e.Frame(gtx.Ops)
+
+				// THis is sent when the application is closed
+			case system.DestroyEvent:
+				return e.Err
+			}
+
+		case p := <-incrementProgress:
+			if boiling && progress < 1 {
+				progress += p
+				w.Invalidate()
+			}
 		}
 	}
-	return nil
 }
 
 func main() {
+	incrementProgress = make(chan float32)
+
+	go func() {
+		for {
+			time.Sleep(time.Second / 25)
+			incrementProgress <- 0.004
+		}
+	}()
+
 	go func() {
 		//Create new window
 		win := app.NewWindow(
