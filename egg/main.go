@@ -14,6 +14,8 @@ import (
 	"gioui.org/widget/material"
 )
 
+var progress float32
+
 type C = layout.Context
 type D = layout.Dimensions
 
@@ -42,7 +44,14 @@ func draw(w *app.Window) error {
 				// Empty space is left at the start i.e. at the top
 				Spacing: layout.SpaceStart,
 			}.Layout(gtx,
-				// We insert tow rigid elements
+				// We insert rigid elements
+				// Insert the progress bar
+				layout.Rigid(
+					func(gtx C) D {
+						bar := material.ProgressBar(th, (progress)) // Progress is used here
+						return bar.Layout(gtx)
+					},
+				),
 				// First, a button
 				layout.Rigid(
 					func(gtx C) D {
