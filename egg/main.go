@@ -19,11 +19,11 @@ type C = layout.Context
 type D = layout.Dimensions
 
 var incrementProgress chan float32
-var progress float32
 
 // the draw function handles the layout
 func draw(w *app.Window) error {
 	var boiling bool
+	var progress float32
 
 	// ops are the operations from the UI
 	var ops op.Ops
