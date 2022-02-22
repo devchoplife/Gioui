@@ -17,6 +17,7 @@ import (
 type C = layout.Context
 type D = layout.Dimensions
 
+// the draw function handles the layout
 func draw(w *app.Window) error {
 	// ops are the operations from the UI
 	var ops op.Ops
@@ -44,9 +45,20 @@ func draw(w *app.Window) error {
 				// We insert tow rigid elements
 				// First, a button
 				layout.Rigid(
-					func(gtx layout.Context) layout.Dimensions {
+					func(gtx C) D {
+						margins := layout.Inset{
+							Top:    unit.Dp(25),
+							Bottom: unit.Dp(25),
+							Right:  unit.Dp(35),
+							Left:   unit.Dp(35),
+						}
+
 						btn := material.Button(th, &startButton, "Start")
-						return btn.Layout(gtx)
+						return margins.Layout(gtx,
+							func(gtx C) D {
+								return btn.Layout(gtx)
+							},
+						)
 					},
 				),
 
